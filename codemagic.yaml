@@ -1,0 +1,16 @@
+workflows:
+  android-release:
+    name: متجر الجنوب Android Release
+    instance_type: linux_x2
+    environment:
+      flutter: stable
+      vars:
+        # Add this as a protected Codemagic environment variable.
+        # It must contain the base64-encoded contents of google-services.json.
+        GOOGLE_SERVICES_JSON_BASE64: $GOOGLE_SERVICES_JSON_BASE64
+    scripts:
+      - name: Build APK
+        script: |
+          bash tool/build_android_release.sh
+    artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
