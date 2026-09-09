@@ -4,7 +4,6 @@ import 'features/home/presentation/home_page.dart';
 import 'features/auth/presentation/login_page.dart';
 import 'features/admin/presentation/admin_page.dart';
 import 'features/vendor/presentation/vendor_page.dart';
-import 'features/notifications/data/notification_service.dart';
 
 class MatjarAlJanoubApp extends StatelessWidget {
   const MatjarAlJanoubApp({super.key});
