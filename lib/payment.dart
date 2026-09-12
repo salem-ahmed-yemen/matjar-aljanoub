@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class PaymentPage extends StatefulWidget {
   final double total;
@@ -18,8 +19,8 @@ class PaymentPage extends StatefulWidget {
 class _PaymentPageState extends State<PaymentPage> {
   final ImagePicker _picker = ImagePicker();
 
-  String selectedMethod = 'تحويل بنكي';
   XFile? receiptImage;
+  bool uploading = false;
 
   Future<void> uploadReceipt() async {
     try {
@@ -28,15 +29,11 @@ class _PaymentPageState extends State<PaymentPage> {
         imageQuality: 85,
       );
 
-      if (image == null) {
-        return;
-      }
+      if (image == null) return;
 
       setState(() {
         receiptImage = image;
       });
-
-      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -44,8 +41,6 @@ class _PaymentPageState extends State<PaymentPage> {
         ),
       );
     } catch (e) {
-      if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('حدث خطأ أثناء اختيار الصورة'),
@@ -54,7 +49,7 @@ class _PaymentPageState extends State<PaymentPage> {
     }
   }
 
-  void confirmPayment() {
+  Future<void> confirmPayment() async {
     if (receiptImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -64,13 +59,49 @@ class _PaymentPageState extends State<PaymentPage> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'تم استلام سند التحويل، وسيتم التحقق من الدفع',
+    setState(() {
+      uploading = true;
+    });
+
+    try {
+      final file = File(receiptImage!.path);
+
+      final fileName =
+          'receipts/${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+      final storageRef =
+          FirebaseStorage.instance.ref().child(fileName);
+
+      await storageRef.putFile(file);
+
+      if (!mounted) return;
+
+      setState(() {
+        uploading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'تم رفع سند التحويل بنجاح',
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        uploading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'تعذر رفع سند التحويل. تحقق من إعدادات Firebase Storage.',
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -98,16 +129,8 @@ class _PaymentPageState extends State<PaymentPage> {
               const SizedBox(height: 16),
 
               Card(
-                child: RadioListTile<String>(
-                  value: 'تحويل بنكي',
-                  groupValue: selectedMethod,
-                  onChanged: (value) {
-                    if (value == null) return;
-
-                    setState(() {
-                      selectedMethod = value;
-                    });
-                  },
+                child: ListTile(
+                  leading: const Icon(Icons.account_balance),
                   title: const Text(
                     'تحويل بنكي',
                     style: TextStyle(
@@ -115,7 +138,7 @@ class _PaymentPageState extends State<PaymentPage> {
                     ),
                   ),
                   subtitle: const Text(
-                    'قم بالتحويل ثم ارفع صورة سند التحويل',
+                    'قم بالتحويل ثم ارفع سند التحويل',
                   ),
                 ),
               ),
@@ -126,7 +149,8 @@ class _PaymentPageState extends State<PaymentPage> {
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    crossAxisAlignment:
+                        CrossAxisAlignment.stretch,
                     children: [
                       const Text(
                         'إجمالي الطلب',
@@ -149,7 +173,8 @@ class _PaymentPageState extends State<PaymentPage> {
                       const SizedBox(height: 8),
 
                       const Text(
-                        'رسوم التوصيل غير مشمولة، وتُدفع نقدًا عند الاستلام.',
+                        'رسوم التوصيل غير مشمولة، '
+                        'وتُدفع نقدًا عند الاستلام.',
                       ),
                     ],
                   ),
@@ -162,7 +187,8 @@ class _PaymentPageState extends State<PaymentPage> {
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    crossAxisAlignment:
+                        CrossAxisAlignment.stretch,
                     children: [
                       const Text(
                         'سند التحويل',
@@ -175,7 +201,8 @@ class _PaymentPageState extends State<PaymentPage> {
                       const SizedBox(height: 10),
 
                       const Text(
-                        'بعد إجراء التحويل البنكي، ارفع صورة سند التحويل هنا.',
+                        'بعد إجراء التحويل البنكي، '
+                        'ارفع صورة سند التحويل هنا.',
                       ),
 
                       const SizedBox(height: 16),
@@ -183,12 +210,13 @@ class _PaymentPageState extends State<PaymentPage> {
                       SizedBox(
                         height: 52,
                         child: OutlinedButton.icon(
-                          onPressed: uploadReceipt,
+                          onPressed:
+                              uploading ? null : uploadReceipt,
                           icon: const Icon(
                             Icons.upload_file,
                           ),
                           label: const Text(
-                            'رفع سند التحويل',
+                            'اختيار سند التحويل',
                             style: TextStyle(
                               fontSize: 17,
                             ),
@@ -200,7 +228,8 @@ class _PaymentPageState extends State<PaymentPage> {
                         const SizedBox(height: 16),
 
                         ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius:
+                              BorderRadius.circular(12),
                           child: Image.file(
                             File(receiptImage!.path),
                             height: 250,
@@ -229,13 +258,25 @@ class _PaymentPageState extends State<PaymentPage> {
               SizedBox(
                 height: 52,
                 child: ElevatedButton.icon(
-                  onPressed: confirmPayment,
-                  icon: const Icon(
-                    Icons.check_circle,
-                  ),
-                  label: const Text(
-                    'تأكيد الدفع وإرسال الطلب',
-                    style: TextStyle(
+                  onPressed:
+                      uploading ? null : confirmPayment,
+                  icon: uploading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child:
+                              CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.cloud_upload,
+                        ),
+                  label: Text(
+                    uploading
+                        ? 'جاري رفع السند...'
+                        : 'رفع السند وتأكيد الدفع',
+                    style: const TextStyle(
                       fontSize: 17,
                     ),
                   ),
