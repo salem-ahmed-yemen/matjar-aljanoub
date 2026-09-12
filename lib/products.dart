@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'cart.dart';
 
 class Product {
   final String name;
@@ -71,18 +72,33 @@ class ProductsPage extends StatelessWidget {
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
               child: ListTile(
-                leading: Icon(product.icon, size: 40),
+                leading: Icon(
+                  product.icon,
+                  size: 40,
+                ),
                 title: Text(
                   product.name,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
+                    fontSize: 18,
                   ),
                 ),
                 subtitle: Text(
                   '${product.price.toStringAsFixed(0)} ريال يمني',
                 ),
                 trailing: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Cart.add(product);
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'تمت إضافة ${product.name} إلى السلة',
+                        ),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
                   child: const Text('أضف للسلة'),
                 ),
               ),
