@@ -76,7 +76,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     prefixIcon: Icon(Icons.person),
                   ),
                   validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
+                    if (value == null ||
+                        value.trim().isEmpty) {
                       return 'أدخل اسم العميل';
                     }
                     return null;
@@ -94,7 +95,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     prefixIcon: Icon(Icons.phone),
                   ),
                   validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
+                    if (value == null ||
+                        value.trim().isEmpty) {
                       return 'أدخل رقم الهاتف';
                     }
                     return null;
@@ -113,7 +115,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     prefixIcon: Icon(Icons.location_on),
                   ),
                   validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
+                    if (value == null ||
+                        value.trim().isEmpty) {
                       return 'أدخل عنوان التوصيل';
                     }
                     return null;
@@ -149,7 +152,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         const SizedBox(height: 8),
 
                         Text(
-                          'الإجمالي: ${Cart.total.toStringAsFixed(0)} ريال يمني',
+                          'الإجمالي: '
+                          '${Cart.total.toStringAsFixed(0)} '
+                          'ريال يمني',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -175,7 +180,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   height: 52,
                   child: ElevatedButton.icon(
                     onPressed: submitOrder,
-                    icon: const Icon(Icons.shopping_cart_checkout),
+                    icon: const Icon(
+                      Icons.shopping_cart_checkout,
+                    ),
                     label: const Text(
                       'تأكيد بيانات الطلب',
                       style: TextStyle(
