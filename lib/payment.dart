@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 class PaymentPage extends StatefulWidget {
   final double total;
@@ -13,23 +16,58 @@ class PaymentPage extends StatefulWidget {
 }
 
 class _PaymentPageState extends State<PaymentPage> {
-  String selectedMethod = 'تحويل بنكي';
+  final ImagePicker _picker = ImagePicker();
 
-  void uploadReceipt() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'سيتم تفعيل رفع سند التحويل في الخطوة التالية',
+  String selectedMethod = 'تحويل بنكي';
+  XFile? receiptImage;
+
+  Future<void> uploadReceipt() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+
+      if (image == null) {
+        return;
+      }
+
+      setState(() {
+        receiptImage = image;
+      });
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم اختيار صورة سند التحويل'),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('حدث خطأ أثناء اختيار الصورة'),
+        ),
+      );
+    }
   }
 
   void confirmPayment() {
+    if (receiptImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('يرجى رفع صورة سند التحويل أولاً'),
+        ),
+      );
+      return;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
-          'يرجى رفع سند التحويل أولاً',
+          'تم استلام سند التحويل، وسيتم التحقق من الدفع',
         ),
       ),
     );
@@ -64,8 +102,10 @@ class _PaymentPageState extends State<PaymentPage> {
                   value: 'تحويل بنكي',
                   groupValue: selectedMethod,
                   onChanged: (value) {
+                    if (value == null) return;
+
                     setState(() {
-                      selectedMethod = value!;
+                      selectedMethod = value;
                     });
                   },
                   title: const Text(
@@ -75,7 +115,7 @@ class _PaymentPageState extends State<PaymentPage> {
                     ),
                   ),
                   subtitle: const Text(
-                    'قم بالتحويل ثم ارفع سند التحويل',
+                    'قم بالتحويل ثم ارفع صورة سند التحويل',
                   ),
                 ),
               ),
@@ -86,8 +126,7 @@ class _PaymentPageState extends State<PaymentPage> {
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.stretch,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const Text(
                         'إجمالي الطلب',
@@ -110,8 +149,7 @@ class _PaymentPageState extends State<PaymentPage> {
                       const SizedBox(height: 8),
 
                       const Text(
-                        'رسوم التوصيل غير مشمولة، '
-                        'وتُدفع نقدًا عند الاستلام.',
+                        'رسوم التوصيل غير مشمولة، وتُدفع نقدًا عند الاستلام.',
                       ),
                     ],
                   ),
@@ -124,8 +162,7 @@ class _PaymentPageState extends State<PaymentPage> {
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.stretch,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const Text(
                         'سند التحويل',
@@ -138,8 +175,7 @@ class _PaymentPageState extends State<PaymentPage> {
                       const SizedBox(height: 10),
 
                       const Text(
-                        'بعد إجراء التحويل البنكي، '
-                        'ارفع صورة سند التحويل هنا.',
+                        'بعد إجراء التحويل البنكي، ارفع صورة سند التحويل هنا.',
                       ),
 
                       const SizedBox(height: 16),
@@ -159,6 +195,30 @@ class _PaymentPageState extends State<PaymentPage> {
                           ),
                         ),
                       ),
+
+                      if (receiptImage != null) ...[
+                        const SizedBox(height: 16),
+
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.file(
+                            File(receiptImage!.path),
+                            height: 250,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        const Center(
+                          child: Text(
+                            'تم اختيار سند التحويل',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
