@@ -1,150 +1,59 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 import 'cart.dart';
+import 'payment.dart';
 
-class PaymentPage extends StatefulWidget {
-  final double total;
-  final String name;
-  final String phone;
-  final String address;
-
-  const PaymentPage({
-    super.key,
-    required this.total,
-    required this.name,
-    required this.phone,
-    required this.address,
-  });
+class CheckoutPage extends StatefulWidget {
+  const CheckoutPage({super.key});
 
   @override
-  State<PaymentPage> createState() => _PaymentPageState();
+  State<CheckoutPage> createState() => _CheckoutPageState();
 }
 
-class _PaymentPageState extends State<PaymentPage> {
-  final ImagePicker _picker = ImagePicker();
+class _CheckoutPageState extends State<CheckoutPage> {
+  final nameController = TextEditingController();
+  final phoneController = TextEditingController();
+  final addressController = TextEditingController();
 
-  XFile? receiptImage;
-  bool uploading = false;
-
-  Future<void> uploadReceipt() async {
-    final image = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 80,
-    );
-
-    if (image != null) {
-      setState(() {
-        receiptImage = image;
-      });
-    }
+  @override
+  void dispose() {
+    nameController.dispose();
+    phoneController.dispose();
+    addressController.dispose();
+    super.dispose();
   }
 
-  Future<void> confirmPayment() async {
-    if (receiptImage == null) {
+  void continueToPayment() {
+    if (nameController.text.trim().isEmpty ||
+        phoneController.text.trim().isEmpty ||
+        addressController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('يرجى رفع صورة سند التحويل أولاً'),
+          content: Text('يرجى تعبئة جميع البيانات'),
         ),
       );
       return;
     }
 
-    setState(() {
-      uploading = true;
-    });
-
-    try {
-      // رفع سند التحويل إلى Firebase Storage
-      final file = File(receiptImage!.path);
-
-      final fileName =
-          'receipts/${DateTime.now().millisecondsSinceEpoch}.jpg';
-
-      final storageRef =
-          FirebaseStorage.instance.ref().child(fileName);
-
-      await storageRef.putFile(file);
-
-      final receiptUrl =
-          await storageRef.getDownloadURL();
-
-      // تجهيز المنتجات الموجودة في السلة
-      final orderItems = Cart.items.map((item) {
-        return {
-          'name': item.product.name,
-          'category': item.product.category,
-          'price': item.product.price,
-          'quantity': item.quantity,
-        };
-      }).toList();
-
-      // حفظ الطلب في Firestore
-      await FirebaseFirestore.instance
-          .collection('orders')
-          .add({
-        'customerName': widget.name,
-        'phone': widget.phone,
-        'address': widget.address,
-        'total': widget.total,
-        'paymentMethod': 'تحويل بنكي',
-        'receiptUrl': receiptUrl,
-        'status': 'بانتظار مراجعة التحويل',
-        'items': orderItems,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      // تفريغ السلة بعد نجاح حفظ الطلب
-      Cart.clear();
-
-      if (!mounted) return;
-
-      setState(() {
-        uploading = false;
-      });
-
-      await showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('تم إرسال الطلب'),
-            content: const Text(
-              'تم حفظ طلبك بنجاح، وسيتم مراجعة سند التحويل.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: const Text('حسنًا'),
-              ),
-            ],
-          );
-        },
-      );
-
-      if (!mounted) return;
-
-      Navigator.of(context).popUntil(
-        (route) => route.isFirst,
-      );
-    } catch (e) {
-      if (!mounted) return;
-
-      setState(() {
-        uploading = false;
-      });
-
+    if (Cart.items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('حدث خطأ أثناء إرسال الطلب: $e'),
+        const SnackBar(
+          content: Text('السلة فارغة'),
         ),
       );
+      return;
     }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PaymentPage(
+          total: Cart.total,
+          name: nameController.text.trim(),
+          phone: phoneController.text.trim(),
+          address: addressController.text.trim(),
+        ),
+      ),
+    );
   }
 
   @override
@@ -153,7 +62,7 @@ class _PaymentPageState extends State<PaymentPage> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('الدفع'),
+          title: const Text('بيانات الطلب'),
           centerTitle: true,
         ),
         body: SingleChildScrollView(
@@ -162,33 +71,49 @@ class _PaymentPageState extends State<PaymentPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                'طريقة الدفع',
+                'بيانات العميل',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
-              Card(
-                child: RadioListTile<String>(
-                  value: 'تحويل بنكي',
-                  groupValue: 'تحويل بنكي',
-                  onChanged: null,
-                  title: const Text(
-                    'تحويل بنكي',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  subtitle: const Text(
-                    'قم بالتحويل ثم ارفع سند التحويل',
-                  ),
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'الاسم',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.person),
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 14),
+
+              TextField(
+                controller: phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'رقم الهاتف',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.phone),
+                ),
+              ),
+
+              const SizedBox(height: 14),
+
+              TextField(
+                controller: addressController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'العنوان',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.location_on),
+                ),
+              ),
+
+              const SizedBox(height: 24),
 
               Card(
                 child: Padding(
@@ -198,68 +123,7 @@ class _PaymentPageState extends State<PaymentPage> {
                         CrossAxisAlignment.stretch,
                     children: [
                       const Text(
-                        'بيانات الطلب',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text('الاسم: ${widget.name}'),
-                      const SizedBox(height: 6),
-                      Text('الهاتف: ${widget.phone}'),
-                      const SizedBox(height: 6),
-                      Text('العنوان: ${widget.address}'),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.stretch,
-                    children: [
-                      const Text(
-                        'إجمالي الطلب',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '${widget.total.toStringAsFixed(0)} ريال يمني',
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'رسوم التوصيل غير مشمولة، '
-                        'وتُدفع نقدًا عند الاستلام.',
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.stretch,
-                    children: [
-                      const Text(
-                        'سند التحويل',
+                        'ملخص الطلب',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -268,33 +132,27 @@ class _PaymentPageState extends State<PaymentPage> {
 
                       const SizedBox(height: 10),
 
+                      Text(
+                        'عدد المنتجات: ${Cart.items.length}',
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      Text(
+                        'الإجمالي: '
+                        '${Cart.total.toStringAsFixed(0)} '
+                        'ريال يمني',
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
                       const Text(
-                        'بعد إجراء التحويل البنكي، '
-                        'ارفع صورة سند التحويل هنا.',
+                        'رسوم التوصيل تُدفع نقدًا عند الاستلام.',
                       ),
-
-                      const SizedBox(height: 16),
-
-                      OutlinedButton.icon(
-                        onPressed:
-                            uploading ? null : uploadReceipt,
-                        icon: const Icon(
-                          Icons.upload_file,
-                        ),
-                        label: Text(
-                          receiptImage == null
-                              ? 'رفع سند التحويل'
-                              : 'تم اختيار السند ✓',
-                        ),
-                      ),
-
-                      if (receiptImage != null) ...[
-                        const SizedBox(height: 12),
-                        Text(
-                          receiptImage!.name,
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
                     ],
                   ),
                 ),
@@ -305,27 +163,11 @@ class _PaymentPageState extends State<PaymentPage> {
               SizedBox(
                 height: 54,
                 child: ElevatedButton.icon(
-                  onPressed:
-                      uploading ? null : confirmPayment,
-                  icon: uploading
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child:
-                              CircularProgressIndicator(
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Icon(
-                          Icons.check_circle,
-                        ),
-                  label: Text(
-                    uploading
-                        ? 'جارٍ إرسال الطلب...'
-                        : 'تأكيد الدفع وإرسال الطلب',
-                    style: const TextStyle(
-                      fontSize: 17,
-                    ),
+                  onPressed: continueToPayment,
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text(
+                    'متابعة إلى الدفع',
+                    style: TextStyle(fontSize: 18),
                   ),
                 ),
               ),
