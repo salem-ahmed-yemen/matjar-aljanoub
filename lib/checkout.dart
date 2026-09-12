@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'cart.dart';
+import 'payment.dart';
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key});
@@ -28,15 +29,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
     super.dispose();
   }
 
-  void submitOrder() {
+  void continueToPayment() {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'تم استلام بيانات الطلب بنجاح',
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PaymentPage(
+          total: Cart.total,
         ),
       ),
     );
@@ -164,7 +166,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         const SizedBox(height: 8),
 
                         const Text(
-                          'رسوم التوصيل تُدفع نقدًا عند الاستلام.',
+                          'رسوم التوصيل غير مشمولة، '
+                          'وتُدفع نقدًا عند الاستلام.',
                           style: TextStyle(
                             fontSize: 15,
                           ),
@@ -179,12 +182,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 SizedBox(
                   height: 52,
                   child: ElevatedButton.icon(
-                    onPressed: submitOrder,
+                    onPressed: continueToPayment,
                     icon: const Icon(
-                      Icons.shopping_cart_checkout,
+                      Icons.payment,
                     ),
                     label: const Text(
-                      'تأكيد بيانات الطلب',
+                      'متابعة إلى الدفع',
                       style: TextStyle(
                         fontSize: 18,
                       ),
