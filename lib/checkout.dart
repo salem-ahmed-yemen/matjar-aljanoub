@@ -34,11 +34,23 @@ class _CheckoutPageState extends State<CheckoutPage> {
       return;
     }
 
+    if (Cart.items.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('السلة فارغة'),
+        ),
+      );
+      return;
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => PaymentPage(
           total: Cart.total,
+          name: nameController.text.trim(),
+          phone: phoneController.text.trim(),
+          address: addressController.text.trim(),
         ),
       ),
     );
@@ -107,7 +119,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    crossAxisAlignment:
+                        CrossAxisAlignment.stretch,
                     children: [
                       const Text(
                         'ملخص الطلب',
@@ -116,15 +129,27 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+
                       const SizedBox(height: 10),
+
                       Text(
-                        'الإجمالي: ${Cart.total.toStringAsFixed(0)} ريال يمني',
+                        'عدد المنتجات: ${Cart.items.length}',
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      Text(
+                        'الإجمالي: '
+                        '${Cart.total.toStringAsFixed(0)} '
+                        'ريال يمني',
                         style: const TextStyle(
                           fontSize: 19,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+
                       const SizedBox(height: 8),
+
                       const Text(
                         'رسوم التوصيل تُدفع نقدًا عند الاستلام.',
                       ),
